@@ -1,0 +1,374 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FlightAI &mdash; Prediction Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path d="M4 20 L16 6 L28 20 L22 20 L22 26 L10 26 L10 20 Z" fill="#3B82F6" opacity="0.9"/>
+          <circle cx="16" cy="16" r="3" fill="white"/>
+        </svg>
+        <span>FlightAI</span>
+      </div>
+      <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="delay">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Delay Prediction
+        </button>
+        <button class="tab-btn" data-tab="overbooking">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Overbooking Risk
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────── -->
+  <main>
+
+    <!-- ════════════════════ TAB 1: DELAY ════════════════════ -->
+    <section id="tab-delay" class="tab-panel active">
+      <div class="panel-grid">
+
+        <!-- Form -->
+        <div class="card form-card">
+          <div class="card-header">
+            <h2>Flight Details</h2>
+            <p class="subtitle">Fill in the flight information to predict delay probability</p>
+          </div>
+
+          <form id="delay-form">
+            <!-- Row 1 -->
+            <div class="form-row two-col">
+              <div class="field">
+                <label>Airline <span class="req">*</span></label>
+                <select name="CARRIER_NAME" required>
+                  <option value="">Select airline…</option>
+                  {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Departing Airport <span class="req">*</span></label>
+                <select name="DEPARTING_AIRPORT" required>
+                  <option value="">Select airport…</option>
+                  {% for a in airports %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="form-row two-col">
+              <div class="field">
+                <label>Month <span class="req">*</span></label>
+                <select name="MONTH" required>
+                  <option value="">Month…</option>
+                  {% for m, n in [("1","January"),("2","February"),("3","March"),("4","April"),("5","May"),("6","June"),("7","July"),("8","August"),("9","September"),("10","October"),("11","November"),("12","December")] %}
+                  <option value="{{ m }}">{{ n }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Day of Week <span class="req">*</span></label>
+                <select name="DAY_OF_WEEK" required>
+                  <option value="">Day…</option>
+                  {% for d, n in [("1","Monday"),("2","Tuesday"),("3","Wednesday"),("4","Thursday"),("5","Friday"),("6","Saturday"),("7","Sunday")] %}
+                  <option value="{{ d }}">{{ n }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 3 -->
+            <div class="form-row two-col">
+              <div class="field">
+                <label>Departure Block <span class="req">*</span></label>
+                <select name="DEP_TIME_BLK" required>
+                  <option value="">Time block…</option>
+                  {% for b in dep_blocks %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Distance Group</label>
+                <input type="number" name="DISTANCE_GROUP" min="1" max="11" placeholder="1–11" value="3"/>
+              </div>
+            </div>
+
+            <!-- Row 4 -->
+            <div class="form-row three-col">
+              <div class="field">
+                <label>Concurrent Flights</label>
+                <input type="number" name="CONCURRENT_FLIGHTS" min="0" placeholder="e.g. 25" value="20"/>
+              </div>
+              <div class="field">
+                <label>Number of Seats</label>
+                <input type="number" name="NUMBER_OF_SEATS" min="1" placeholder="e.g. 150" value="150"/>
+              </div>
+              <div class="field">
+                <label>Plane Age (years)</label>
+                <input type="number" name="PLANE_AGE" min="0" placeholder="e.g. 8" value="8"/>
+              </div>
+            </div>
+
+            <!-- Row 5: Weather -->
+            <div class="section-divider">
+              <span>Weather Conditions</span>
+            </div>
+            <div class="form-row four-col">
+              <div class="field">
+                <label>Precipitation (in)</label>
+                <input type="number" name="PRCP" step="0.01" min="0" placeholder="0.00" value="0"/>
+              </div>
+              <div class="field">
+                <label>Snow (in)</label>
+                <input type="number" name="SNOW" step="0.1" min="0" placeholder="0.0" value="0"/>
+              </div>
+              <div class="field">
+                <label>Snow Depth (in)</label>
+                <input type="number" name="SNWD" step="0.1" min="0" placeholder="0.0" value="0"/>
+              </div>
+              <div class="field">
+                <label>Max Temp (&deg;F)</label>
+                <input type="number" name="TMAX" placeholder="e.g. 75" value="70"/>
+              </div>
+            </div>
+            <div class="form-row two-col">
+              <div class="field">
+                <label>Avg Wind Speed (mph)</label>
+                <input type="number" name="AWND" step="0.1" min="0" placeholder="e.g. 8.5" value="8"/>
+              </div>
+              <div class="field">
+                <label>Avg Load Factor</label>
+                <input type="number" name="avg_load_factor" step="0.001" min="0" max="1.2" placeholder="0.85" value="0.85"/>
+              </div>
+            </div>
+
+            <!-- ASRS optional -->
+            <div class="section-divider">
+              <span>Optional: Incident Report Text (ASRS)</span>
+            </div>
+            <div class="field">
+              <label>Narrative Report <span class="optional-tag">optional</span></label>
+              <textarea name="asrs_text" rows="3" placeholder="Paste an ASRS incident narrative to include a risk score in the prediction…"></textarea>
+              <p class="field-hint">Leave blank to use risk score 0. When filled, a zero-shot NLP model scores the risk.</p>
+            </div>
+
+            <button type="submit" class="predict-btn" id="delay-submit">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Predict Delay
+            </button>
+          </form>
+        </div>
+
+        <!-- Result panel -->
+        <div class="card result-card" id="delay-result-card">
+          <div class="result-placeholder" id="delay-placeholder">
+            <svg width="60" height="60" fill="none" stroke="#94A3B8" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <p>Fill in the form and click <strong>Predict Delay</strong> to see results.</p>
+          </div>
+
+          <div class="result-content hidden" id="delay-result">
+            <div class="result-gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 200 110" width="200" height="110">
+                <path d="M10 100 A90 90 0 0 1 190 100" fill="none" stroke="#E2E8F0" stroke-width="18" stroke-linecap="round"/>
+                <path id="delay-gauge-arc" d="M10 100 A90 90 0 0 1 190 100" fill="none" stroke="#3B82F6" stroke-width="18" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+              </svg>
+              <div class="gauge-label">
+                <span id="delay-prob-pct" class="gauge-pct">--%</span>
+                <span class="gauge-sub">delay probability</span>
+              </div>
+            </div>
+
+            <div id="delay-verdict" class="verdict"></div>
+
+            <div class="prob-bar-wrap">
+              <div class="prob-bar-track">
+                <div id="delay-prob-bar" class="prob-bar" style="width:0%"></div>
+              </div>
+              <div class="prob-bar-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+            </div>
+
+            <div class="detail-grid" id="delay-details"></div>
+
+            <!-- Charts toggle -->
+            <button class="chart-toggle-btn" id="delay-chart-btn">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Show Diagnostic Charts
+            </button>
+            <div class="charts-area hidden" id="delay-charts">
+              <canvas id="delay-bar-chart" height="220"></canvas>
+              <canvas id="delay-gauge-chart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-grid -->
+    </section>
+
+    <!-- ════════════════════ TAB 2: OVERBOOKING ════════════════════ -->
+    <section id="tab-overbooking" class="tab-panel">
+      <div class="panel-grid">
+
+        <!-- Form -->
+        <div class="card form-card">
+          <div class="card-header">
+            <h2>Booking Details</h2>
+            <p class="subtitle">Enter SFO booking statistics to predict overbooking risk</p>
+          </div>
+
+          <form id="ob-form">
+            <!-- Row 1 -->
+            <div class="form-row two-col">
+              <div class="field">
+                <label>Airline <span class="req">*</span></label>
+                <select name="airline" required>
+                  <option value="">Select airline…</option>
+                  {% for a in airlines_ob %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Month <span class="req">*</span></label>
+                <select name="month" required>
+                  <option value="">Month…</option>
+                  {% for m, n in [("1","January"),("2","February"),("3","March"),("4","April"),("5","May"),("6","June"),("7","July"),("8","August"),("9","September"),("10","October"),("11","November"),("12","December")] %}
+                  <option value="{{ m }}">{{ n }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="form-row three-col">
+              <div class="field">
+                <label>Seats <span class="req">*</span></label>
+                <input type="number" name="seats" min="1" placeholder="e.g. 150" required value="150"/>
+              </div>
+              <div class="field">
+                <label>Passengers <span class="req">*</span></label>
+                <input type="number" name="passengers" min="0" placeholder="e.g. 138" required value="138"/>
+              </div>
+              <div class="field">
+                <label>Load Factor</label>
+                <input type="number" name="load_factor" step="0.0001" min="0" max="1.5" placeholder="0.92" value="0.92"/>
+              </div>
+            </div>
+
+            <!-- Row 3 -->
+            <div class="form-row two-col">
+              <div class="field">
+                <label>Geographic Summary</label>
+                <select name="geo_summary">
+                  <option value="Domestic">Domestic</option>
+                  <option value="International">International</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Geographic Region</label>
+                <select name="geo_region">
+                  <option value="US">US</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Europe">Europe</option>
+                  <option value="Asia">Asia</option>
+                  <option value="Australia / Oceania">Australia / Oceania</option>
+                  <option value="Central America">Central America</option>
+                  <option value="South America">South America</option>
+                  <option value="Mexico">Mexico</option>
+                  <option value="Middle East">Middle East</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 4 -->
+            <div class="form-row two-col">
+              <div class="field">
+                <label>Terminal</label>
+                <select name="terminal">
+                  <option value="Terminal 1">Terminal 1</option>
+                  <option value="Terminal 2">Terminal 2</option>
+                  <option value="Terminal 3">Terminal 3</option>
+                  <option value="International">International</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Price Category</label>
+                <select name="price_category">
+                  <option value="Low">Low</option>
+                  <option value="High">High</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Live load factor calculator -->
+            <div class="section-divider"><span>Load Factor Calculator</span></div>
+            <div class="lf-calc">
+              <svg width="16" height="16" fill="none" stroke="#3B82F6" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span>Tip: load factor = passengers &divide; seats. Update the fields above and it auto-fills.</span>
+            </div>
+
+            <button type="submit" class="predict-btn" id="ob-submit">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Predict Overbooking Risk
+            </button>
+          </form>
+        </div>
+
+        <!-- Result panel -->
+        <div class="card result-card" id="ob-result-card">
+          <div class="result-placeholder" id="ob-placeholder">
+            <svg width="60" height="60" fill="none" stroke="#94A3B8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <p>Fill in the booking details and click <strong>Predict Overbooking Risk</strong>.</p>
+          </div>
+
+          <div class="result-content hidden" id="ob-result">
+            <div class="result-gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 200 110" width="200" height="110">
+                <path d="M10 100 A90 90 0 0 1 190 100" fill="none" stroke="#E2E8F0" stroke-width="18" stroke-linecap="round"/>
+                <path id="ob-gauge-arc" d="M10 100 A90 90 0 0 1 190 100" fill="none" stroke="#3B82F6" stroke-width="18" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+              </svg>
+              <div class="gauge-label">
+                <span id="ob-prob-pct" class="gauge-pct">--%</span>
+                <span class="gauge-sub">overbooking probability</span>
+              </div>
+            </div>
+
+            <div id="ob-verdict" class="verdict"></div>
+
+            <div class="prob-bar-wrap">
+              <div class="prob-bar-track">
+                <div id="ob-prob-bar" class="prob-bar" style="width:0%"></div>
+              </div>
+              <div class="prob-bar-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+            </div>
+
+            <div class="detail-grid" id="ob-details"></div>
+
+            <button class="chart-toggle-btn" id="ob-chart-btn">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Show Diagnostic Charts
+            </button>
+            <div class="charts-area hidden" id="ob-charts">
+              <canvas id="ob-bar-chart" height="220"></canvas>
+              <canvas id="ob-gauge-chart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
